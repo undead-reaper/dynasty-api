@@ -1,0 +1,2 @@
+ALTER TABLE "commentaries" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "matches" ENABLE ROW LEVEL SECURITY;
