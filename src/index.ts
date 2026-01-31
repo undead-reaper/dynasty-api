@@ -1,8 +1,9 @@
+import { securityMiddleware } from "@/arcjet";
 import { serverEnv } from "@/env/server";
 import { matchRouter } from "@/routes/matches";
+import { attachWebSocketServer } from "@/ws/server";
 import express from "express";
 import http from "http";
-import { attachWebSocketServer } from "./ws/server";
 
 const PORT = Number(serverEnv.PORT);
 const HOST = serverEnv.HOST;
@@ -16,6 +17,7 @@ app.get("/", (_, res) => {
   res.status(200).json({ message: "Welcome to the Dynasty API" });
 });
 
+app.use(securityMiddleware());
 app.use("/matches", matchRouter);
 const { broadCastMatchCreated } = attachWebSocketServer(server);
 app.locals.broadCastMatchCreated = broadCastMatchCreated;

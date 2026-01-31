@@ -6,6 +6,8 @@ export const serverEnv = createEnv({
     DATABASE_URL: z.string(),
     PORT: z.string(),
     HOST: z.string(),
+    ARCJET_KEY: z.string(),
+    ARCJET_ENV: z.enum(["development", "production", "staging"]),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
