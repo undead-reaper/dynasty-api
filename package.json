@@ -23,6 +23,7 @@
     "@types/express": "^5.0.6",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
     "express": "^5.2.1",
     "pg": "^8.18.0",
     "zod": "^4.3.6"

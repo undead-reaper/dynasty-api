@@ -1,3 +1,4 @@
+import { matchRouter } from "@/routes/matches";
 import express from "express";
 
 const app = express();
@@ -8,6 +9,8 @@ app.use(express.json());
 app.get("/", (_, res) => {
   res.status(200).json({ message: "Welcome to the Dynasty API" });
 });
+
+app.use("/matches", matchRouter);
 
 app.get("/ping", (_, res) => {
   res.status(200).json({ message: "pong" });

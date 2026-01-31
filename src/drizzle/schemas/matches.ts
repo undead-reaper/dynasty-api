@@ -6,6 +6,11 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 
 export const matchStatusEnum = pgEnum("match_status", [
   "scheduled",
@@ -25,3 +30,7 @@ export const matches = pgTable("matches", {
   awayScore: integer("away_score").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }).enableRLS();
+
+export const MatchSelectSchema = createSelectSchema(matches);
+export const MatchInsertSchema = createInsertSchema(matches);
+export const MatchUpdateSchema = createUpdateSchema(matches);
