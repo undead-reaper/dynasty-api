@@ -1,5 +1,6 @@
 import { securityMiddleware } from "@/arcjet";
 import { serverEnv } from "@/env/server";
+import { commentaryRouter } from "@/routes/commentaries";
 import { matchRouter } from "@/routes/matches";
 import { attachWebSocketServer } from "@/ws/server";
 import express from "express";
@@ -19,6 +20,7 @@ app.get("/", (_, res) => {
 
 app.use(securityMiddleware());
 app.use("/matches", matchRouter);
+app.use("/matches/:id/commentaries", commentaryRouter);
 const { broadCastMatchCreated } = attachWebSocketServer(server);
 app.locals.broadCastMatchCreated = broadCastMatchCreated;
 
