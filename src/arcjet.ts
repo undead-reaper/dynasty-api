@@ -1,6 +1,6 @@
+import { serverEnv } from "@/env/server";
 import arcjet, { detectBot, shield, slidingWindow } from "@arcjet/node";
 import type { NextFunction, Request, Response } from "express";
-import { serverEnv } from "./env/server";
 
 const arcjetKey = serverEnv.ARCJET_KEY;
 const arcjetMode = serverEnv.ARCJET_ENV === "production" ? "DRY_RUN" : "LIVE";

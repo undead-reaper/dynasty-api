@@ -7,6 +7,11 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 
 export const commentaries = pgTable("commentaries", {
   id: serial("id").primaryKey(),
@@ -24,3 +29,7 @@ export const commentaries = pgTable("commentaries", {
   tags: text("tags").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }).enableRLS();
+
+export const CommentarySelectSchema = createSelectSchema(commentaries);
+export const CommentaryInsertSchema = createInsertSchema(commentaries);
+export const CommentaryUpdateSchema = createUpdateSchema(commentaries);

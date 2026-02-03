@@ -1,4 +1,5 @@
 import { wsArcjet } from "@/arcjet";
+import type { CommentarySelectSchema } from "@/drizzle/schemas/commentaries";
 import type { MatchSelectSchema } from "@/drizzle/schemas/matches";
 import type { Request } from "express";
 import type { Server } from "http";
@@ -7,7 +8,67 @@ import type z from "zod";
 
 interface WebSocketWithAlive extends WebSocket {
   isAlive: boolean;
+  subscriptions: Set<string>;
 }
+
+const matchSubscribers = new Map<string, Set<WebSocket>>();
+
+const subscribeToMatch = (matchId: string, ws: WebSocket) => {
+  if (!matchSubscribers.has(matchId)) {
+    matchSubscribers.set(matchId, new Set());
+  }
+  matchSubscribers.get(matchId)?.add(ws);
+};
+
+const unsubscribeFromMatch = (matchId: string, ws: WebSocket) => {
+  const subscribers = matchSubscribers.get(matchId);
+  if (subscribers) {
+    subscribers.delete(ws);
+    if (subscribers.size === 0) {
+      matchSubscribers.delete(matchId);
+    }
+  }
+};
+
+const cleanupSubscriptions = (ws: WebSocket) => {
+  const wsWithSubs = ws as WebSocketWithAlive;
+  for (const matchId of wsWithSubs.subscriptions) {
+    unsubscribeFromMatch(matchId, ws);
+  }
+};
+
+const broadcastToMatch = (matchId: string, payload: any) => {
+  const subscribers = matchSubscribers.get(matchId);
+  if (subscribers && subscribers.size !== 0) {
+    const message = JSON.stringify(payload);
+    for (const client of subscribers) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
+  }
+};
+
+const handleMessage = (ws: WebSocket, data: WebSocket.Data) => {
+  const wsWithSubs = ws as WebSocketWithAlive;
+  try {
+    const message = JSON.parse(data.toString());
+    if (message.type === "subscribe" && Number.isInteger(message.matchId)) {
+      subscribeToMatch(message.matchId, ws);
+      wsWithSubs.subscriptions.add(message.matchId);
+      sendJson(ws, { type: "subscribed", matchId: message.matchId });
+    } else if (
+      message.type === "unsubscribe" &&
+      Number.isInteger(message.matchId)
+    ) {
+      unsubscribeFromMatch(message.matchId, ws);
+      wsWithSubs.subscriptions.delete(message.matchId);
+      sendJson(ws, { type: "unsubscribed", matchId: message.matchId });
+    }
+  } catch (error) {
+    sendJson(ws, { type: "error", error: "Invalid JSON" });
+  }
+};
 
 const sendJson = (ws: WebSocket, payload: any) => {
   if (ws.readyState === WebSocket.OPEN) {
@@ -15,7 +76,7 @@ const sendJson = (ws: WebSocket, payload: any) => {
   }
 };
 
-const broadcast = (wss: WebSocketServer, payload: any) => {
+const broadcastToAll = (wss: WebSocketServer, payload: any) => {
   for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) {
       try {
@@ -66,7 +127,15 @@ export const attachWebSocketServer = (server: Server) => {
         wsAlive.on("pong", () => {
           wsAlive.isAlive = true;
         });
+        wsAlive.subscriptions = new Set();
         sendJson(wsAlive, { type: "welcome" });
+        wsAlive.on("message", (data) => handleMessage(wsAlive, data));
+        wsAlive.on("error", () => {
+          wsAlive.terminate();
+        });
+        wsAlive.on("close", () => {
+          cleanupSubscriptions(wsAlive);
+        });
         wsAlive.on("error", console.error);
       }
     } catch (error) {
@@ -86,7 +155,13 @@ export const attachWebSocketServer = (server: Server) => {
   }, 30000);
   wss.on("close", () => clearInterval(interval));
   const broadCastMatchCreated = (match: z.infer<typeof MatchSelectSchema>) => {
-    broadcast(wss, { type: "match_created", data: match });
+    broadcastToAll(wss, { type: "match_created", data: match });
   };
-  return { broadCastMatchCreated };
+  const broadCastCommentary = (
+    matchId: string,
+    commentary: z.infer<typeof CommentarySelectSchema>,
+  ) => {
+    broadcastToMatch(matchId, { type: "commentary", data: commentary });
+  };
+  return { broadCastMatchCreated, broadCastCommentary };
 };

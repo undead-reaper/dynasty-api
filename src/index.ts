@@ -21,8 +21,10 @@ app.get("/", (_, res) => {
 app.use(securityMiddleware());
 app.use("/matches", matchRouter);
 app.use("/matches/:id/commentaries", commentaryRouter);
-const { broadCastMatchCreated } = attachWebSocketServer(server);
+const { broadCastMatchCreated, broadCastCommentary } =
+  attachWebSocketServer(server);
 app.locals.broadCastMatchCreated = broadCastMatchCreated;
+app.locals.broadCastCommentary = broadCastCommentary;
 
 app.get("/ping", (_, res) => {
   res.status(200).json({ message: "pong" });

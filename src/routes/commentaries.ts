@@ -8,7 +8,7 @@ import { matchIdParamSchema } from "@/validations/matches";
 import { desc, eq } from "drizzle-orm";
 import { Router } from "express";
 
-export const commentaryRouter = Router();
+export const commentaryRouter = Router({ mergeParams: true });
 const MAX_LIMIT = 100;
 
 commentaryRouter.get("/", async (req, res) => {
@@ -27,7 +27,7 @@ commentaryRouter.get("/", async (req, res) => {
     } else {
       try {
         const { id: matchId } = paramsResult.data;
-        const { limit = 10 } = queryResult.data;
+        const { limit = MAX_LIMIT } = queryResult.data;
         const safeLimit = Math.min(limit, MAX_LIMIT);
         const results = await db
           .select()
@@ -59,14 +59,18 @@ commentaryRouter.post("/", async (req, res) => {
       });
     } else {
       try {
-        const { ...rest } = bodyResult.data;
+        const { minute, ...rest } = bodyResult.data;
         const [result] = await db
           .insert(commentaries)
           .values({
             matchId: paramsResult.data.id,
+            minute,
             ...rest,
           })
           .returning();
+        if (res.app.locals.broadCastCommentary && result) {
+          res.app.locals.broadCastCommentary(result.matchId, result);
+        }
         return res.status(201).json({ commentary: result });
       } catch (error) {
         console.error("Error creating commentary:", error);
